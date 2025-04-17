@@ -1,26 +1,34 @@
 server:
-  port: 8080                    # Puerto en el que levanta el Gateway
+  port: 8080
   servlet:
-    context-path: /             # Context path raíz ("/") para recibir todas las rutas
+    context-path: /
 
 spring:
   application:
-    name: tesora-gateway        # Nombre lógico de la aplicación (útil en logs y métricas)
+    name: tesora-gateway
 
   cloud:
     gateway:
-      default-filters:          # Filtros que se aplican a todas las rutas definidas
-        - RewriteLocationResponseHeader=X-Forwarded-Prefix, .
-                                 # Cuando el downstream hace un redirect (Location), reescribe la cabecera
-                                 # añadiendo el prefijo original que llegó al Gateway
-
-      routes:                   # Lista de rutas que define hacia dónde enrutar
-        - id: auth              # Identificador único de la ruta “auth”
-          uri: lb://auth-service 
-                                 # URL base del servicio de autenticación (downstream)
+      routes:
+        - id: auth
+          uri: lb://auth-service
           predicates:
-            - Path=/gateway/api/authentication/**  
-                                 # Patrón de ruta; cuando la petición cumpla, se aplica esta ruta
+            - Path=/gateway/api/authentication/**
           filters:
-            - StripPrefix=2      # Antes de reenviar, elimina el primer segmento (“/api”) de la URI
+            - StripPrefix=2
 
+eureka:
+  client:
+    service-url:
+      defaultZone: http://192.168.100.23:8761/eureka
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    instance-id: ${spring.application.name}:${random.uuid}
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
