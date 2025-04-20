@@ -9,26 +9,36 @@ spring:
 
   cloud:
     gateway:
+
       routes:
-        - id: auth
-          uri: lb://auth-service
+
+
+        - id: auth-service
+          uri: http://localhost:8082
           predicates:
-            - Path=/gateway/api/authentication/**
+            - Path=/gateway/auth-service/api/authentication/**
           filters:
-            - StripPrefix=2
+           - StripPrefix=1 
+
+        - id: grupos-service
+          uri: http://localhost:8081/grupos-service
+          predicates:
+            - Path=/gateway/grupos-service/api/grupos/**
+          filters:
+            - StripPrefix=1						
 
 eureka:
   client:
+    fetch-registry: false
     service-url:
-      defaultZone: http://192.168.100.23:8761/eureka
-    register-with-eureka: true
-    fetch-registry: true
-  instance:
-    instance-id: ${spring.application.name}:${random.uuid}
-    prefer-ip-address: true
+      defaultZone: http://localhost:8761/eureka/
 
 management:
   endpoints:
     web:
       exposure:
         include: health, info
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
