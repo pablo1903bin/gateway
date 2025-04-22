@@ -5,8 +5,15 @@ server:
 
 spring:
   application:
-    name: tesora-gateway
+    name: gateway-service
 
+  profiles:
+   default: dev 	
+
+  config:
+    import: ${SPRING_CONFIG_IMPORT} # Importa la configuración externa desde config-server
+    #import: optional:configserver:http://localhost:7777/
+  
   cloud:
     gateway:
 
@@ -21,7 +28,7 @@ spring:
            - StripPrefix=1 
 
         - id: grupos-service
-          uri: http://localhost:8081/grupos-service
+          uri: lb://grupos-service
           predicates:
             - Path=/gateway/grupos-service/api/grupos/**
           filters:
