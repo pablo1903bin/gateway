@@ -12,9 +12,9 @@ spring:
 
       routes:
 
-
+        # 🟢 AUTHSERVICE usando Eureka ahora
         - id: auth-service
-          uri: http://localhost:8082
+          uri: lb://auth-service
           predicates:
             - Path=/gateway/auth-service/api/authentication/**
           filters:
@@ -29,9 +29,9 @@ spring:
 
 eureka:
   client:
-    fetch-registry: false
+    fetch-registry: true
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${eureka.registry-server}
 
 management:
   endpoints:
