@@ -8,37 +8,15 @@ spring:
     name: gateway-service
 
   profiles:
-   default: dev 	
+    active: oauth2
 
-  config:
-    import: ${SPRING_CONFIG_IMPORT} # Importa la configuración externa desde config-server
-    #import: optional:configserver:http://localhost:7777/
-  
-  cloud:
-    gateway:
-
-      routes:
-
-        # 🟢 AUTHSERVICE usando Eureka ahora
-        - id: auth-service
-          uri: lb://auth-service
-          predicates:
-            - Path=/gateway/auth-service/api/authentication/**
-          filters:
-           - StripPrefix=1 
-
-        - id: grupos-service
-          uri: lb://grupos-service
-          predicates:
-            - Path=/gateway/grupos-service/api/grupos/**
-          filters:
-            - StripPrefix=1						
 
 eureka:
   client:
     fetch-registry: true
     service-url:
-      defaultZone: ${eureka.registry-server}
+      #defaultZone: ${eureka.registry-server}
+      defaultZone: http://localhost:8761/eureka/
 
 management:
   endpoints:
