@@ -95,10 +95,10 @@ public class GatewayRoutesConfigBean {
 
             // 📥 auth-server no requiere filtro (acá se hace el login, generación de token, etc.)
             .route("auth-server", route -> route
-                .path("/auth-server/auth/**") // rutas públicas del auth-server
-                .filters(filter -> filter.stripPrefix(1))
-                .uri("lb://auth-server")
-            )
+            	    .path("/auth-server/auth/**")
+            	    .uri("lb://auth-server")
+            	)
+
 
             .build();
     }

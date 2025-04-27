@@ -1,7 +1,13 @@
 package com.tesoramobil.gateway.filters;
 
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -12,70 +18,112 @@ import com.tesoramobil.gateway.dtos.TokenDto;
 
 import reactor.core.publisher.Mono;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+
+
 @Component
 public class AuthFilter implements GatewayFilter {
 
     // Cliente Web reactivo para hacer peticiones HTTP
     private final WebClient webClient;
 
+    
+    // Constructor: construye el WebClient
+    public AuthFilter() {
+        this.webClient = WebClient.builder().build();
+    }
+    
     // URL del endpoint que valida si el token JWT es válido
     private static final String AUTH_VALIDATE_URI = "http://localhost:3000/auth-server/auth/jwt";
 
     // Nombre del header donde el frontend nos manda el token JWT
     private static final String ACCESS_TOKEN_HEADER_NAME = "accessToken";
-
-    // Constructor: construye el WebClient
-    public AuthFilter() {
-        this.webClient = WebClient.builder().build();
-    }
-
+    
+    // 🚀 Aquí estan los permisos
+    private static final Map<String, Map<String, List<String>>> permisos = Map.of(
+        "ADMIN", Map.of(
+            "GET", List.of("/grupos-service/api/grupos/listar"),
+            "POST", List.of("/grupos-service/api/grupos/crear"),
+            "PUT", List.of("/grupos-service/api/grupos/modificar"),
+            "DELETE", List.of("/grupos-service/api/grupos/borrar")
+        ),
+        "USER", Map.of(
+            "GET", List.of("/grupos-service/api/grupos/listar")
+        )
+    );
+    
+	@Value("${jwt.secret}")
+	private String SECRET_KEY;
+	
     /**
      * Método que intercepta las peticiones antes de llegar al backend
      * Aquí se valida que venga un token correcto antes de dejar pasar la solicitud
      */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-
-        // 1. Validamos que venga el header "Authorization"
+        
         if (!exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-            return this.onError(exchange); // Si no viene, devolvemos error 400
+            return this.onError(exchange, HttpStatus.BAD_REQUEST, "Missing Authorization Header");
         }
 
-        // 2. Obtenemos el valor del header Authorization (ej: "Bearer ey...")
-        final var tokenHeader = exchange
-            .getRequest()
-            .getHeaders()
-            .get(HttpHeaders.AUTHORIZATION)
-            .get(0); // toma el primer valor del header
-
-        // 3. Separamos el contenido por espacio: ["Bearer", "el_token"]
+        final var tokenHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         final var chunks = tokenHeader.split(" ");
-
-        // 4. Validamos que tenga exactamente 2 partes y que empiece con "Bearer"
         if (chunks.length != 2 || !chunks[0].equals("Bearer")) {
-            return this.onError(exchange); // Si no cumple el formato, respondemos 400
+            return this.onError(exchange, HttpStatus.BAD_REQUEST, "Invalid Authorization Format");
         }
 
-        // 5. Obtenemos solo el token JWT
         final var token = chunks[1];
 
-        // 6. Llamamos al endpoint de validación enviando el token en un header personalizado
         return this.webClient
-            .post()                                       // Hacemos una petición POST
-            .uri(AUTH_VALIDATE_URI)                       // Al endpoint que valida el token
-            .header(ACCESS_TOKEN_HEADER_NAME, token)      // Enviamos el token en el header "accessToken"
-            .retrieve()                                   // Enviamos la petición
-            .bodyToMono(TokenDto.class)                   // Esperamos un TokenDto como respuesta
-            .map(response -> exchange)                    // Si todo salió bien, continuamos con el request original
-            .flatMap(chain::filter);                      // Dejamos pasar la petición al backend
+            .post()
+            .uri(AUTH_VALIDATE_URI)
+            .header(ACCESS_TOKEN_HEADER_NAME, token)
+            .retrieve()
+            .bodyToMono(TokenDto.class)
+            .flatMap(response -> {
+                String tokenJwt = response.getAccessToken();
+
+                // Decodificar el token
+                Claims claims = Jwts.parserBuilder()
+                        .setSigningKey(SECRET_KEY.getBytes(StandardCharsets.UTF_8))
+                        .build()
+                        .parseClaimsJws(tokenJwt)
+                        .getBody();
+
+                String role = claims.get("roles", String.class);
+                String path = exchange.getRequest().getPath().toString();
+                String method = exchange.getRequest().getMethod().name();
+
+
+                System.out.println("🎯 Rol extraído del token: " + role);
+                System.out.println("📥 Petición a ruta: " + path + " [Método: " + method + "]");
+
+                // 🔥 Validar permisos basado en nuestro Map
+                if (!isAuthorized(role, method, path)) {
+                    return this.onError(exchange, HttpStatus.FORBIDDEN, "Access Denied: You don't have permission.");
+                }
+
+                // Si todo bien, deja pasar
+                return chain.filter(exchange);
+            })   .onErrorResume(error -> {
+                // 🔥 Si hubo error en la validación, respondemos 401 al cliente
+                return this.onError(exchange, HttpStatus.UNAUTHORIZED, "Token inválido o expirado.");
+            });
+    }
+    
+    private boolean isAuthorized(String role, String method, String path) {
+        return permisos.getOrDefault(role, Map.of())
+            .getOrDefault(method, List.of())
+            .stream()
+            .anyMatch(allowedPath -> allowedPath.equals(path));
     }
 
-    /**
-     * Método que devuelve un error 400 si el token no está presente o es inválido
-     */
-    private Mono<Void> onError(ServerWebExchange exchange) {
+    private Mono<Void> onError(ServerWebExchange exchange, HttpStatus status, String message) {
         final var response = exchange.getResponse();
-        response.setStatusCode(HttpStatus.BAD_REQUEST); // Puedes cambiarlo por UNAUTHORIZED si quieres (401)
-        return response.setComplete();
+        response.setStatusCode(status);
+        DataBuffer buffer = response.bufferFactory().wrap(message.getBytes(StandardCharsets.UTF_8));
+        return response.writeWith(Mono.just(buffer));
     }
+    
 }

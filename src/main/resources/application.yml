@@ -1,3 +1,6 @@
+###
+##
+#
 server:
   port: 8080
   servlet:
@@ -10,12 +13,20 @@ spring:
   profiles:
     active: oauth2
 
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: 3000 # Tiempo máximo para conectar al microservicio (milisegundos)
+        response-timeout: 5s   # Tiempo máximo para recibir respuesta
+        pool:
+          type: elastic        # Usa un pool elástico que crece y se limpia solo
+          max-connections: 5000 # Límite total de conexiones HTTP mantenidas
+          acquire-timeout: 5000 # Espera máximo 5 segundos para obtener conexión libre
 
 eureka:
   client:
     fetch-registry: true
     service-url:
-      #defaultZone: ${eureka.registry-server}
       defaultZone: http://localhost:8761/eureka/
 
 management:
@@ -23,7 +34,18 @@ management:
     web:
       exposure:
         include: health, info
+  endpoint:
+    health:
+      show-details: always
 
 logging:
   level:
-    org.springframework.cloud.gateway: DEBUG
+    root: INFO
+    org.springframework.cloud.gateway: WARN
+    org.springframework.web.reactive.function.client.ExchangeFunctions: ERROR
+    com.tesoramobil.gateway: DEBUG
+
+
+jwt:
+  secret: 75hjbbd8hnbjbjbjbxhh7seh6g36g6wgrgsldububxlnp0f0djf9jdpj
+
