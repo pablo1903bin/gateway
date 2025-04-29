@@ -47,5 +47,6 @@ logging:
 
 
 jwt:
-  secret: 75hjbbd8hnbjbjbjbxhh7seh6g36g6wgrgsldububxlnp0f0djf9jdpj
+  secret: kI8sG73Bsd9Pq4LgM6xE2zUAjYwt94RHBxVsFKNqc3ehPLoZm0XnvTLsGCrMYO7iT
+
 

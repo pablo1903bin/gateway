@@ -1,7 +1,5 @@
 package com.tesoramobil.gateway.beans;
 
-import java.util.Set;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
@@ -9,14 +7,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
-import com.tesoramobil.gateway.filters.AuthFilter;
+import com.tesoramobil.gateway.filters.AuthServiceFilter;
+import com.tesoramobil.gateway.filters.GruposServiceFilter;
 
 @Configuration // Esta clase contiene beans de configuración para el Gateway
 public class GatewayRoutesConfigBean {
 
     @Autowired
-    AuthFilter authFilter; // Inyectamos el filtro personalizado para proteger rutas
+    AuthServiceFilter authFilter; 
 
+    @Autowired
+    GruposServiceFilter gruposServiceFilter;
     // 🔌 Rutas locales SIN Eureka
     @Bean
     @Profile("eureka-off") // Este bean solo se activa cuando el perfil "eureka-off" está activo
@@ -74,10 +75,10 @@ public class GatewayRoutesConfigBean {
 
             // 🔐 auth-service protegido con authFilter
             .route("auth-service", route -> route
-                .path("/gateway/auth-service/authentication/**")
+            	.path("/gateway/auth-service/**")
                 .filters(filter -> filter
-                    .stripPrefix(1) // quitamos /gateway
-                    .filter(this.authFilter) // aplicamos el filtro para validar el token
+                    .stripPrefix(1) 
+                    .filter(this.authFilter)
                 )
                 .uri("lb://auth-service") // se busca en Eureka
             )
@@ -87,7 +88,7 @@ public class GatewayRoutesConfigBean {
                 .path("/gateway/grupos-service/api/grupos/**")
                 .filters(filter -> {
                     filter.stripPrefix(1);
-                    filter.filter(this.authFilter);
+                    filter.filter(this.gruposServiceFilter);
                     return filter;
                 })
                 .uri("lb://grupos-service")
@@ -98,8 +99,6 @@ public class GatewayRoutesConfigBean {
             	    .path("/auth-server/auth/**")
             	    .uri("lb://auth-server")
             	)
-
-
             .build();
     }
 }
