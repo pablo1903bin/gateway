@@ -73,7 +73,8 @@ public class GatewayRoutesConfigBean {
         return builder
             .routes()
 
-            // 🔐 auth-service protegido con authFilter
+            // 🔐 auth-service protegido con authFilter es mi Service de Usuarios 
+            //Lo usare para creacion de usuarios
             .route("auth-service", route -> route
             	.path("/gateway/auth-service/**")
                 .filters(filter -> filter
@@ -85,7 +86,7 @@ public class GatewayRoutesConfigBean {
 
             // 🔐 grupos-service protegido también
             .route("grupos-service", route -> route
-                .path("/gateway/grupos-service/api/grupos/**")
+                .path("/gateway/grupos-service/**")
                 .filters(filter -> {
                     filter.stripPrefix(1);
                     filter.filter(this.gruposServiceFilter);

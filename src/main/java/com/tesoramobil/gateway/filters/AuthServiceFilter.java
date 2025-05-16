@@ -29,7 +29,7 @@ public class AuthServiceFilter implements GatewayFilter {
     private static final Map<String, List<String>> adminPermisos = Map.of(
         "GET", List.of(
             "/auth-service/authentication/usuarios",
-            "/auth-service/user/all" // ejemplo de listar todos los usuarios
+            "/auth-service/user/all"                // listar todos los usuarios
         ),
         "POST", List.of(
             "/auth-service/authentication/changerol",
@@ -40,7 +40,7 @@ public class AuthServiceFilter implements GatewayFilter {
             "/auth-service/user/update"
         ),
         "DELETE", List.of(
-            "/auth-service/user" // con path variable /user/{id}
+            "/auth-service/user"                   // con path variable /user/{id}
         )
     );
 
@@ -53,6 +53,7 @@ public class AuthServiceFilter implements GatewayFilter {
 
         // 🚪 Rutas públicas (NO requieren token)
         if (isPublicRoute(path)) {
+        	System.out.println("AuthService: es ruta publica! ");
             return chain.filter(exchange); // Deja pasar
         }
 

@@ -5,6 +5,8 @@ server:
   port: 8080
   servlet:
     context-path: /
+  netty:
+    connection-timeout: 30s
 
 spring:
   application:
@@ -27,7 +29,9 @@ eureka:
   client:
     fetch-registry: true
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      #defaultZone: ${eureka.registry-server}
+      #defaultZone: http://192.168.100.23:8761/eureka/
 
 management:
   endpoints:
@@ -47,6 +51,6 @@ logging:
 
 
 jwt:
-  secret: kI8sG73Bsd9Pq4LgM6xE2zUAjYwt94RHBxVsFKNqc3ehPLoZm0XnvTLsGCrMYO7iT
+  secret: ${JWT_SECRET}
 
 
